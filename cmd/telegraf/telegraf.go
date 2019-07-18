@@ -31,6 +31,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/outputs/all"
 	"github.com/influxdata/telegraf/plugins/processors"
 	_ "github.com/influxdata/telegraf/plugins/processors/all"
+	"github.com/influxdata/telegraf/remote"
 	"github.com/kardianos/service"
 )
 
@@ -72,6 +73,8 @@ var fServiceDisplayName = flag.String("service-display-name", "Telegraf Data Col
 var fRunAsConsole = flag.Bool("console", false, "run as console application (windows only)")
 var fPlugins = flag.String("external-plugins", "",
 	"path to directory containing external plugins")
+var fExternalConfigURL = flag.String("external-config-url", "",
+	"url to get config files")
 
 var (
 	version string
@@ -199,6 +202,13 @@ func runAgent(ctx context.Context,
 	}
 
 	if *fConfigDirectory != "" {
+		// Get remote configuration if requested
+		if *fExternalConfigURL != "" {
+			err := remote.GetExternalFiles(*fExternalConfigURL, *fConfigDirectory, remote.Config, remote.HttpGet)
+			if err != nil {
+				return err
+			}
+		}
 		err = c.LoadDirectory(*fConfigDirectory)
 		if err != nil {
 			return err

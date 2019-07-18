@@ -19,6 +19,8 @@ The commands & flags are:
   --external-plugins             directory containing *.so files, this directory will be
                                  searched recursively. Any Plugin found will be loaded
                                  and namespaced.
+  --external-config-url <url>    url called to receive *.conf files that will be
+                                 copied to the config-directory
   --debug                        turn on debug logging
   --input-filter <filter>        filter the inputs to enable, separator is :
   --input-list                   print available input plugins.
