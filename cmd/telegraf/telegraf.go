@@ -75,6 +75,8 @@ var fPlugins = flag.String("external-plugins", "",
 	"path to directory containing external plugins")
 var fExternalConfigURL = flag.String("external-config-url", "",
 	"url to get config files")
+var fPluginsURL = flag.String("external-plugins-url", "",
+	"url to get external plugins")
 
 var (
 	version string
@@ -360,6 +362,13 @@ func main() {
 
 	// Load external plugins, if requested.
 	if *fPlugins != "" {
+		// Get remote plugins if requested
+		if *fPluginsURL != "" {
+			err := remote.GetExternalFiles(*fPluginsURL, *fPlugins, remote.Plugin, remote.HttpGet)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+		}
 		pluginsDir, err := filepath.Abs(*fPlugins)
 		if err != nil {
 			log.Fatal(err.Error())

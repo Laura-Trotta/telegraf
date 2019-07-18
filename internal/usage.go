@@ -21,6 +21,8 @@ The commands & flags are:
                                  and namespaced.
   --external-config-url <url>    url called to receive *.conf files that will be
                                  copied to the config-directory
+  --external-plugins-url <url>   url called to receive *.so files that will be
+                                 copied to the external-plugins directory
   --debug                        turn on debug logging
   --input-filter <filter>        filter the inputs to enable, separator is :
   --input-list                   print available input plugins.
