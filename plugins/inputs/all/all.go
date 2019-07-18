@@ -110,6 +110,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/pgbouncer"
 	_ "github.com/influxdata/telegraf/plugins/inputs/phpfpm"
 	_ "github.com/influxdata/telegraf/plugins/inputs/ping"
+	_ "github.com/influxdata/telegraf/plugins/inputs/planner"
 	_ "github.com/influxdata/telegraf/plugins/inputs/postfix"
 	_ "github.com/influxdata/telegraf/plugins/inputs/postgresql"
 	_ "github.com/influxdata/telegraf/plugins/inputs/postgresql_extensible"
