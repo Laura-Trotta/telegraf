@@ -5,7 +5,7 @@ Given a path, a metric will be stored in:
 	
 given-directory/metric-name/host/year/day-of-year
 
-# COnfiguration
+# Configuration
 
 [[outputs.archiver]]
 
