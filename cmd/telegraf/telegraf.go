@@ -10,20 +10,26 @@ import (
 	_ "net/http/pprof" // Comment this line to disable pprof endpoint.
 	"os"
 	"os/signal"
+	"path"
+	"path/filepath"
+	"plugin"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/agent"
 	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/internal/config"
 	"github.com/influxdata/telegraf/logger"
+	"github.com/influxdata/telegraf/plugins/aggregators"
 	_ "github.com/influxdata/telegraf/plugins/aggregators/all"
 	"github.com/influxdata/telegraf/plugins/inputs"
 	_ "github.com/influxdata/telegraf/plugins/inputs/all"
 	"github.com/influxdata/telegraf/plugins/outputs"
 	_ "github.com/influxdata/telegraf/plugins/outputs/all"
+	"github.com/influxdata/telegraf/plugins/processors"
 	_ "github.com/influxdata/telegraf/plugins/processors/all"
 	"github.com/kardianos/service"
 )
@@ -64,6 +70,8 @@ var fService = flag.String("service", "",
 var fServiceName = flag.String("service-name", "telegraf", "service name (windows only)")
 var fServiceDisplayName = flag.String("service-display-name", "Telegraf Data Collector Service", "service display name (windows only)")
 var fRunAsConsole = flag.Bool("console", false, "run as console application (windows only)")
+var fPlugins = flag.String("external-plugins", "",
+	"path to directory containing external plugins")
 
 var (
 	version string
@@ -109,6 +117,67 @@ func reloadLoop(
 			log.Fatalf("E! [telegraf] Error running agent: %v", err)
 		}
 	}
+}
+
+// loadExternalPlugins loads external plugins from shared libraries (.so, .dll, etc.)
+// in the specified directory.
+func loadExternalPlugins(rootDir string) error {
+	return filepath.Walk(rootDir, func(pth string, info os.FileInfo, err error) error {
+		// Stop if there was an error.
+		if err != nil {
+			return err
+		}
+
+		// Ignore directories.
+		if info.IsDir() {
+			return nil
+		}
+
+		// Ignore files that aren't shared libraries.
+		ext := strings.ToLower(path.Ext(pth))
+		if ext != ".so" && ext != ".dll" {
+			return nil
+		}
+
+		// name will be the path to the plugin file beginning at the root
+		// directory, minus the extension.
+		// ie, if the plugin file is /opt/telegraf-plugins/group1/foo.so, name
+		// will be "external/group1/foo"
+		name := strings.TrimPrefix(strings.TrimPrefix(pth, rootDir), string(os.PathSeparator))
+		name = strings.TrimSuffix(name, filepath.Ext(pth))
+		name = "external" + string(os.PathSeparator) + name
+
+		// Load plugin.
+		p, err := plugin.Open(pth)
+		if err != nil {
+			return fmt.Errorf("error loading [%s]: %s", pth, err)
+		}
+
+		s, err := p.Lookup("Plugin")
+		if err != nil {
+			fmt.Printf("ERROR Could not find 'Plugin' symbol in [%s]\n", pth)
+			return nil
+		}
+
+		switch tplugin := s.(type) {
+		case *telegraf.Input:
+			fmt.Printf("Adding external input plugin: %s\n", name)
+			inputs.Add(name, func() telegraf.Input { return *tplugin })
+		case *telegraf.Output:
+			fmt.Printf("Adding external output plugin: %s\n", name)
+			outputs.Add(name, func() telegraf.Output { return *tplugin })
+		case *telegraf.Processor:
+			fmt.Printf("Adding external processor plugin: %s\n", name)
+			processors.Add(name, func() telegraf.Processor { return *tplugin })
+		case *telegraf.Aggregator:
+			fmt.Printf("Adding external aggregator plugin: %s\n", name)
+			aggregators.Add(name, func() telegraf.Aggregator { return *tplugin })
+		default:
+			fmt.Printf("ERROR: 'Plugin' symbol from [%s] is not a telegraf interface, it has type: %T\n", pth, tplugin)
+		}
+
+		return nil
+	})
 }
 
 func runAgent(ctx context.Context,
@@ -277,6 +346,18 @@ func main() {
 	}
 	if *fProcessorFilters != "" {
 		processorFilters = strings.Split(":"+strings.TrimSpace(*fProcessorFilters)+":", ":")
+	}
+
+	// Load external plugins, if requested.
+	if *fPlugins != "" {
+		pluginsDir, err := filepath.Abs(*fPlugins)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		fmt.Printf("Loading external plugins from: %s\n", pluginsDir)
+		if err := loadExternalPlugins(*fPlugins); err != nil {
+			log.Fatal(err.Error())
+		}
 	}
 
 	if *pprofAddr != "" {
