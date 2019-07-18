@@ -54,6 +54,11 @@ var sampleConfig = `
   ## actually reads it
   # retain = false
 
+  ## When true, topic will be set to single_topic_name for every metric. default: false
+  # single_topic = false
+  ## If the flag single_topic is true, single_topic_name will be used as name. 
+  # single_topic_name = ""
+
   ## Data format to output.
   ## Each data format has its own unique set of configuration options, read
   ## more about them here:
@@ -74,6 +79,9 @@ type MQTT struct {
 	BatchMessage bool `toml:"batch"`
 	Retain       bool `toml:"retain"`
 
+	SingleTopic     bool   `toml:"single_topic"`
+	SingleTopicName string `toml:"single_topic_name"`
+
 	client paho.Client
 	opts   *paho.ClientOptions
 
@@ -83,6 +91,9 @@ type MQTT struct {
 }
 
 func (m *MQTT) Connect() error {
+	if m.SingleTopic && len(m.SingleTopicName) < 1 {
+		return fmt.Errorf("Must provide single_topic_name if single_topic is enabled")
+	}
 	var err error
 	m.Lock()
 	defer m.Unlock()
@@ -136,16 +147,22 @@ func (m *MQTT) Write(metrics []telegraf.Metric) error {
 	metricsmap := make(map[string][]telegraf.Metric)
 
 	for _, metric := range metrics {
-		var t []string
-		if m.TopicPrefix != "" {
-			t = append(t, m.TopicPrefix)
-		}
-		if hostname != "" {
-			t = append(t, hostname)
-		}
+		var topic string
 
-		t = append(t, metric.Name())
-		topic := strings.Join(t, "/")
+		if m.SingleTopic {
+			topic = m.SingleTopicName
+		} else {
+			var t []string
+			if m.TopicPrefix != "" {
+				t = append(t, m.TopicPrefix)
+			}
+			if hostname != "" {
+				t = append(t, hostname)
+			}
+
+			t = append(t, metric.Name())
+			topic = strings.Join(t, "/")
+		}
 
 		if m.BatchMessage {
 			metricsmap[topic] = append(metricsmap[topic], metric)
