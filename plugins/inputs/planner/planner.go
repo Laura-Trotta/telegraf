@@ -63,6 +63,14 @@ func checkDirNames(f *File) error {
 		f.Directory = f.Directory + string(os.PathSeparator)
 	}
 
+	_, errdir := os.Stat(f.Plandirectory)
+	if os.IsNotExist(errdir) {
+		err := os.MkdirAll(f.Plandirectory, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
