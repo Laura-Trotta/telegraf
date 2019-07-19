@@ -7,10 +7,10 @@ This input plugin reads one file once per day and processes its metrics, changin
   [[inputs.planner]]
 
   ## Directory containing the files to be modified
-  directory = "/home/ltrotta/Desktop/provaplugin/archiveddata"
+  directory = ""
 
   ## Directory containing configuration file
-  confdirectory = "/home/ltrotta/Desktop/provaplugin/configplanner"
+  confdirectory = ""
 
   ## The dataformat to be read from files
   ## Each data format has its own unique set of configuration options, read
