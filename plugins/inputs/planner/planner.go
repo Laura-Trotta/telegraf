@@ -15,7 +15,7 @@ import (
 
 type File struct {
 	Directory     string `toml:"directory"`
-	Confdirectory string `toml:"confdirectory"`
+	Plandirectory string `toml:"plandirectory"`
 	parser        parsers.Parser
 }
 
@@ -28,17 +28,17 @@ type Plan struct {
 var Plugin telegraf.Input
 
 const sampleConfig = `
-  ## Directory containing the files to be modified
-  directory = ""
+## Directory containing the files to be read
+directory = ""
 
-  ## Directory containing configuration file
-  confdirectory = ""
+## Directory where the plan will be saved
+plandirectory = ""
 
-  ## The dataformat to be read from files
-  ## Each data format has its own unique set of configuration options, read
-  ## more about them here:
-  ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
-  data_format = "influx"
+## The dataformat to be read from files
+## Each data format has its own unique set of configuration options, read
+## more about them here:
+## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
+data_format = "influx"
 `
 
 // SampleConfig returns the default configuration of the Input
@@ -51,12 +51,12 @@ func (f *File) Description() string {
 }
 
 func checkDirNames(f *File) error {
-	if len(f.Confdirectory) < 1 || len(f.Directory) < 1 {
+	if len(f.Plandirectory) < 1 || len(f.Directory) < 1 {
 		return fmt.Errorf("Must provide path for both directories")
 	}
-	lastChar := f.Confdirectory[len(f.Confdirectory)-1:]
+	lastChar := f.Plandirectory[len(f.Plandirectory)-1:]
 	if lastChar != string(os.PathSeparator) {
-		f.Confdirectory = f.Confdirectory + string(os.PathSeparator)
+		f.Plandirectory = f.Plandirectory + string(os.PathSeparator)
 	}
 	lastChar = f.Directory[len(f.Directory)-1:]
 	if lastChar != string(os.PathSeparator) {
@@ -99,7 +99,7 @@ func initialize(f *File, first bool) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(f.Confdirectory+"plan.json", file, 0644)
+	err = ioutil.WriteFile(f.Plandirectory+"plan.json", file, 0644)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 		return err
 	}
 
-	_, errstat := os.Stat(f.Confdirectory + "plan.json")
+	_, errstat := os.Stat(f.Plandirectory + "plan.json")
 	if os.IsNotExist(errstat) {
 		err := initialize(f, true)
 		if err != nil {
@@ -124,7 +124,7 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 
 	plans := []Plan{}
 
-	file, err := ioutil.ReadFile(f.Confdirectory + "plan.json")
+	file, err := ioutil.ReadFile(f.Plandirectory + "plan.json")
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 			if err != nil {
 				return err
 			}
-			err = ioutil.WriteFile(f.Confdirectory+"plan.json", file, 0644)
+			err = ioutil.WriteFile(f.Plandirectory+"plan.json", file, 0644)
 			if err != nil {
 				return err
 			}
@@ -172,7 +172,7 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 	}
 
 	if workdone {
-		os.Remove(f.Confdirectory + "plan.json")
+		os.Remove(f.Plandirectory + "plan.json")
 		err := initialize(f, false)
 		if err != nil {
 			return err
