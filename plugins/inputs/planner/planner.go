@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -16,6 +17,7 @@ import (
 type File struct {
 	Directory     string `toml:"directory"`
 	Plandirectory string `toml:"plandirectory"`
+	TagsList      string `toml:"tagslist"`
 	parser        parsers.Parser
 }
 
@@ -50,7 +52,24 @@ func (f *File) Description() string {
 	return "Modifies the timestamp of one file per day in the directory"
 }
 
-func checkDirNames(f *File) error {
+func getTags(f *File) map[string]string {
+
+	tagsmap := make(map[string]string)
+
+	couples := strings.Split(f.TagsList, ",")
+
+	for _, couple := range couples {
+
+		single := strings.Split(couple, "=")
+
+		tagsmap[single[0]] = single[1]
+
+	}
+
+	return tagsmap
+}
+
+func (f *File) checkDirNames() error {
 	if len(f.Plandirectory) < 1 || len(f.Directory) < 1 {
 		return fmt.Errorf("Must provide path for both directories")
 	}
@@ -74,7 +93,41 @@ func checkDirNames(f *File) error {
 	return nil
 }
 
-func initialize(f *File, first bool) error {
+func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.Accumulator) error {
+	metrics, err := f.readMetric(f.Directory + plan.Filename)
+	if err != nil {
+		return err
+	}
+	for _, m := range metrics {
+
+		newtime := time.Date(plan.Day.Year(), plan.Day.Month(), plan.Day.Day(), m.Time().Hour(), m.Time().Minute(), m.Time().Second(), m.Time().Nanosecond(), m.Time().Location())
+
+		m.SetTime(newtime)
+
+		for key, value := range tagsmap {
+			m.AddTag(key, value)
+		}
+
+		acc.AddFields(m.Name(), m.Fields(), m.Tags(), m.Time())
+
+	}
+	return nil
+}
+
+func (f *File) savePlans(plans []Plan) error {
+
+	file, err := json.MarshalIndent(plans, "", "")
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(f.Plandirectory+"plan.json", file, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f *File) initialize(reference time.Time) error {
 
 	var names []string
 
@@ -91,40 +144,31 @@ func initialize(f *File, first bool) error {
 
 	plans := make([]Plan, len(names))
 
+	date := time.Date(reference.Year(), reference.Month(), reference.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
+
 	for i, name := range names {
 
-		plus := i
-		if !first {
-			plus++
-		}
-		plan := Plan{time.Now().UTC().AddDate(0, 0, plus).Truncate(time.Hour), name, false}
+		plan := Plan{date.AddDate(0, 0, i), name, false}
 
 		plans[i] = plan
 
 	}
 
-	file, err := json.MarshalIndent(plans, "", "")
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(f.Plandirectory+"plan.json", file, 0644)
-	if err != nil {
-		return err
-	}
+	f.savePlans(plans)
 
 	return nil
 }
 
 func (f *File) Gather(acc telegraf.Accumulator) error {
 
-	err := checkDirNames(f)
+	err := f.checkDirNames()
 	if err != nil {
 		return err
 	}
 
 	_, errstat := os.Stat(f.Plandirectory + "plan.json")
 	if os.IsNotExist(errstat) {
-		err := initialize(f, true)
+		err := f.initialize(time.Now().AddDate(0, 0, -1).UTC())
 		if err != nil {
 			return err
 		}
@@ -141,36 +185,20 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 		return err
 	}
 
+	tagsmap := getTags(f)
+
 	workdone := true
 
 	for i, plan := range plans {
 
 		if plan.Done == false && time.Now().UTC().After(plan.Day) {
 
-			metrics, err := f.readMetric(f.Directory + plan.Filename)
-			if err != nil {
-				return err
-			}
-			for _, m := range metrics {
-
-				newtime := time.Date(plan.Day.Year(), plan.Day.Month(), plan.Day.Day(), m.Time().Hour(), m.Time().Minute(), m.Time().Second(), m.Time().Nanosecond(), time.UTC)
-				m.SetTime(newtime)
-				acc.AddFields(m.Name(), m.Fields(), m.Tags(), m.Time())
-
-			}
+			f.modifyMetrics(plan, tagsmap, acc)
 
 			plan.Done = true
-
 			plans[i] = plan
 
-			file, err := json.MarshalIndent(plans, "", "")
-			if err != nil {
-				return err
-			}
-			err = ioutil.WriteFile(f.Plandirectory+"plan.json", file, 0644)
-			if err != nil {
-				return err
-			}
+			f.savePlans(plans)
 
 		}
 
@@ -180,8 +208,9 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 	}
 
 	if workdone {
+		lastday := plans[len(plans)-1].Day
 		os.Remove(f.Plandirectory + "plan.json")
-		err := initialize(f, false)
+		err := f.initialize(lastday)
 		if err != nil {
 			return err
 		}
