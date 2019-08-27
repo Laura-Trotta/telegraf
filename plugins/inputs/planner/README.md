@@ -1,11 +1,11 @@
 # Planner Plugin
 
-This input plugin reads one file once per day and processes its metrics, changing the year, day and month to the current ones. When it has finished reading all the metrics in every file, it starts over. 
+This input plugin reads files from a given folder and processes the metrics they contain. The files must have numbers as their name, as they will be read n days after the plugin is first started, where n is the file name. When a file is processed, the timestamp of its metrics will be changed to match the year, month and day to the date when they are processed. When it has finished reading all the metrics in every file, it starts over. 
 
-The files containing the metrics must be located in the folder specified in the configuration, and they will be read in alphabetical order. 
+The files containing the metrics must be located in the folder specified in the configuration.
 Another directory must be configured where the plugin will save its "plan", that is a .json file to keep track of the plugin's work. 
 
-It can be used to simulate having new metrics every day, recycling the same files. 
+It can be used to simulate having new metrics when you want, recycling the same files. 
 
 #Configuration
 

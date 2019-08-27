@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,7 +96,7 @@ func (f *File) checkDirNames() error {
 }
 
 func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.Accumulator) error {
-	metrics, err := f.readMetric(f.Directory + plan.Filename)
+	metrics, err := f.readMetric(filepath.Join(f.Directory, plan.Filename))
 	if err != nil {
 		return err
 	}
@@ -129,11 +131,12 @@ func (f *File) savePlans(plans []Plan) error {
 
 func (f *File) initialize(reference time.Time) error {
 
-	var names []string
+	var names []int
 
 	err := filepath.Walk(f.Directory, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			names = append(names, info.Name())
+			intname, _ := strconv.Atoi(info.Name())
+			names = append(names, intname)
 		}
 		return nil
 	})
@@ -144,11 +147,13 @@ func (f *File) initialize(reference time.Time) error {
 
 	plans := make([]Plan, len(names))
 
+	sort.Ints(names)
+
 	date := time.Date(reference.Year(), reference.Month(), reference.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
 
 	for i, name := range names {
 
-		plan := Plan{date.AddDate(0, 0, i), name, false}
+		plan := Plan{date.AddDate(0, 0, name), strconv.Itoa(name), false}
 
 		plans[i] = plan
 
