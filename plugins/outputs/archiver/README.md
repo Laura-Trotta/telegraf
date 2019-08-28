@@ -1,9 +1,9 @@
 # Archiver Plugin
 
-This plugin saves metrics to files dividing them by metric name, host, year and day.
+This plugin saves metrics to files dividing them by metric name, tag, year and day.
 Given a path, a metric will be stored in:
 	
-given-directory/metric-name/host/year/day-of-year
+given-directory/metric-name/tag/year/day-of-year
 
 # Configuration
 
@@ -11,6 +11,9 @@ given-directory/metric-name/host/year/day-of-year
 
   ## Directory to write to
   directory = ""
+
+  ## Tag to filter
+  tag = ""
 
  
   ## Data format to output.

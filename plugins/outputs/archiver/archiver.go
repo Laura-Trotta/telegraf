@@ -15,6 +15,7 @@ import (
 
 type File struct {
 	Directory string `toml:"directory"`
+	Tag       string `toml:"tag"`
 
 	writer     io.Writer
 	closers    []io.Closer
@@ -77,7 +78,7 @@ func (f *File) Write(metrics []telegraf.Metric) error {
 		var filename strings.Builder
 		filename.WriteString(metrics[i].Name())
 		filename.WriteString(string(os.PathSeparator))
-		filename.WriteString(metrics[i].Tags()["host"])
+		filename.WriteString(metrics[i].Tags()[f.Tag])
 		filename.WriteString(string(os.PathSeparator))
 		filename.WriteString(strconv.Itoa(year))
 		dirname := filename.String()
