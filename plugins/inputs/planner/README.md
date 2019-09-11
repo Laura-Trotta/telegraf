@@ -7,8 +7,9 @@ Another directory must be configured where the plugin will save its "plan", that
 
 It can be used to simulate having new metrics when you want, recycling the same files. 
 
-#Configuration
+## Configuration
 
+```toml
 [[inputs.planner]]
 
 ## Directory containing the files to be read
@@ -22,3 +23,4 @@ plandirectory = ""
 ## more about them here:
 ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_INPUT.md
 data_format = "influx"
+```
