@@ -5,8 +5,9 @@ Given a path, a metric will be stored in:
 	
 given-directory/metric-name/tag/year/day-of-year
 
-# Configuration
+## Configuration
 
+```toml
 [[outputs.archiver]]
 
   ## Directory to write to
@@ -21,3 +22,4 @@ given-directory/metric-name/tag/year/day-of-year
   ## more about them here:
   ## https://github.com/influxdata/telegraf/blob/master/docs/DATA_FORMATS_OUTPUT.md
   data_format = "influx"
+  ```
