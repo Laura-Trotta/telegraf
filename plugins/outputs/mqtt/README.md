@@ -33,6 +33,12 @@ This plugin writes to a [MQTT Broker](http://http://mqtt.org/) acting as a mqtt 
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
+  ## Single topic option
+  ## When true, topic will be set to single_topic_name for every metric. default: false
+  # single_topic = false
+  ## If the flag single_topic is true, single_topic_name will be used as name. 
+  # single_topic_name = ""
+
   ## When true, metrics will be sent in one MQTT message per flush.  Otherwise,
   ## metrics are written one metric per MQTT message.
   # batch = false
