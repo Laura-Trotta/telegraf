@@ -25,8 +25,10 @@ type File struct {
 
 type Plan struct {
 	Day      time.Time `json:"day"`
+	OldDay   time.Time `json:"old_day"`
 	Filename string    `json:"filename"`
-	Done     bool      `json:"done"`
+	DoneT    bool      `json:"done_t"`
+	DoneB    bool      `json:"done_b"`
 }
 
 var Plugin telegraf.Input
@@ -71,6 +73,7 @@ func getTags(f *File) map[string]string {
 	return tagsmap
 }
 
+//Checks if the directory provided in configuration are existent and correct
 func (f *File) checkDirNames() error {
 	if len(f.Plandirectory) < 1 || len(f.Directory) < 1 {
 		return fmt.Errorf("Must provide path for both directories")
@@ -95,11 +98,16 @@ func (f *File) checkDirNames() error {
 	return nil
 }
 
-func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.Accumulator) error {
+//Changes the day and choosen tag of the metrics
+//Returns the original date of the metrics
+func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.Accumulator) (time.Time, error) {
 	metrics, err := f.readMetric(filepath.Join(f.Directory, plan.Filename))
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
+
+	oldDate := metrics[0].Time().UTC()
+
 	for _, m := range metrics {
 
 		newtime := time.Date(plan.Day.Year(), plan.Day.Month(), plan.Day.Day(), m.Time().Hour(), m.Time().Minute(), m.Time().Second(), m.Time().Nanosecond(), m.Time().Location())
@@ -113,9 +121,11 @@ func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.
 		acc.AddFields(m.Name(), m.Fields(), m.Tags(), m.Time())
 
 	}
-	return nil
+
+	return oldDate, nil
 }
 
+//Saves changes to the json file plan.json
 func (f *File) savePlans(plans []Plan) error {
 
 	file, err := json.MarshalIndent(plans, "", "")
@@ -129,6 +139,7 @@ func (f *File) savePlans(plans []Plan) error {
 	return nil
 }
 
+//Creates the initial plan
 func (f *File) initialize(reference time.Time) error {
 
 	var names []int
@@ -153,7 +164,7 @@ func (f *File) initialize(reference time.Time) error {
 
 	for i, name := range names {
 
-		plan := Plan{date.AddDate(0, 0, name), strconv.Itoa(name), false}
+		plan := Plan{date.AddDate(0, 0, name), date.AddDate(0, 0, name), strconv.Itoa(name), false, false}
 
 		plans[i] = plan
 
@@ -196,18 +207,21 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 
 	for i, plan := range plans {
 
-		if plan.Done == false && time.Now().UTC().After(plan.Day) {
+		if plan.DoneT == false && time.Now().UTC().After(plan.Day) {
 
-			f.modifyMetrics(plan, tagsmap, acc)
+			oldDay, err := f.modifyMetrics(plan, tagsmap, acc)
 
-			plan.Done = true
-			plans[i] = plan
+			if err == nil {
+				plan.DoneT = true
+				plan.OldDay = oldDay
+				plans[i] = plan
 
-			f.savePlans(plans)
+				f.savePlans(plans)
+			}
 
 		}
 
-		if plan.Done == false {
+		if plan.DoneT == false {
 			workdone = false
 		}
 	}
