@@ -41,21 +41,21 @@ func TestInitialize(t *testing.T) {
 
 	//file 1
 	assert.Equal(t, "0", plans[0].Filename)
-	assert.Equal(t, false, plans[0].Done)
+	assert.Equal(t, false, plans[0].DoneT)
 
 	planneddate := time.Date(testdate.Year(), testdate.Month(), testdate.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 0)
 	assert.Equal(t, planneddate, plans[0].Day)
 
 	//file 2
 	assert.Equal(t, "2", plans[1].Filename)
-	assert.Equal(t, false, plans[1].Done)
+	assert.Equal(t, false, plans[1].DoneT)
 
 	planneddate = time.Date(testdate.Year(), testdate.Month(), testdate.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 2)
 	assert.Equal(t, planneddate, plans[1].Day)
 
 	//file 3
 	assert.Equal(t, "4", plans[2].Filename)
-	assert.Equal(t, false, plans[2].Done)
+	assert.Equal(t, false, plans[2].DoneT)
 
 	planneddate = time.Date(testdate.Year(), testdate.Month(), testdate.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 4)
 	assert.Equal(t, planneddate, plans[2].Day)
