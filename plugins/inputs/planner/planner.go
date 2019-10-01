@@ -27,8 +27,7 @@ type Plan struct {
 	Day      time.Time `json:"day"`
 	OldDay   time.Time `json:"old_day"`
 	Filename string    `json:"filename"`
-	DoneT    bool      `json:"done_t"`
-	DoneB    bool      `json:"done_b"`
+	Done     bool      `json:"done"`
 }
 
 var Plugin telegraf.Input
@@ -100,13 +99,11 @@ func (f *File) checkDirNames() error {
 
 //Changes the day and choosen tag of the metrics
 //Returns the original date of the metrics
-func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.Accumulator) (time.Time, error) {
+func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.Accumulator) error {
 	metrics, err := f.readMetric(filepath.Join(f.Directory, plan.Filename))
 	if err != nil {
-		return time.Time{}, err
+		return err
 	}
-
-	oldDate := metrics[0].Time().UTC()
 
 	for _, m := range metrics {
 
@@ -122,7 +119,7 @@ func (f *File) modifyMetrics(plan Plan, tagsmap map[string]string, acc telegraf.
 
 	}
 
-	return oldDate, nil
+	return nil
 }
 
 //Saves changes to the json file plan.json
@@ -164,7 +161,16 @@ func (f *File) initialize(reference time.Time) error {
 
 	for i, name := range names {
 
-		plan := Plan{date.AddDate(0, 0, name), date.AddDate(0, 0, name), strconv.Itoa(name), false, false}
+		stringName := strconv.Itoa(name)
+
+		metrics, err := f.readMetric(filepath.Join(f.Directory, stringName))
+		if err != nil {
+			return err
+		}
+
+		oldDay := metrics[0].Time().UTC()
+
+		plan := Plan{date.AddDate(0, 0, name), oldDay, stringName, false}
 
 		plans[i] = plan
 
@@ -207,13 +213,12 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 
 	for i, plan := range plans {
 
-		if plan.DoneT == false && time.Now().UTC().After(plan.Day) {
+		if plan.Done == false && time.Now().UTC().After(plan.Day) {
 
-			oldDay, err := f.modifyMetrics(plan, tagsmap, acc)
+			err := f.modifyMetrics(plan, tagsmap, acc)
 
 			if err == nil {
-				plan.DoneT = true
-				plan.OldDay = oldDay
+				plan.Done = true
 				plans[i] = plan
 
 				f.savePlans(plans)
@@ -221,7 +226,7 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 
 		}
 
-		if plan.DoneT == false {
+		if plan.Done == false {
 			workdone = false
 		}
 	}
