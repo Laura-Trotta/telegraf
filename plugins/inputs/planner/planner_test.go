@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/influxdata/telegraf/plugins/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +23,13 @@ func TestInitialize(t *testing.T) {
 	assert.NoError(t, err)
 
 	testdate := time.Now()
+
+	p, _ := parsers.NewParser(&parsers.Config{
+		MetricName: "example_timeseries",
+		DataFormat: "influx",
+	})
+
+	file.SetParser(p)
 
 	err = file.initialize(testdate.AddDate(0, 0, -1))
 	assert.NoError(t, err)
