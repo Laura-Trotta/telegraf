@@ -178,6 +178,9 @@ func (f *File) initialize(reference time.Time) error {
 
 	f.savePlans(plans)
 
+	message := "Initializing new plan"
+	fmt.Println(message)
+
 	return nil
 }
 
@@ -211,7 +214,13 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 
 	workdone := true
 
-	for i, plan := range plans {
+	for i := len(plans) - 1; i >= 0; i-- {
+
+		plan := plans[i]
+
+		if plan.Done == false {
+			workdone = false
+		}
 
 		if plan.Done == false && time.Now().UTC().After(plan.Day) {
 
@@ -222,13 +231,13 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 				plans[i] = plan
 
 				f.savePlans(plans)
+
+				fmt.Println("Data from file " + plan.Filename + " copied")
+
 			}
-
+			break
 		}
 
-		if plan.Done == false {
-			workdone = false
-		}
 	}
 
 	if workdone {
@@ -238,6 +247,8 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 		if err != nil {
 			return err
 		}
+		message := "All data copied, creating new plan"
+		fmt.Println(message)
 	}
 
 	return nil
