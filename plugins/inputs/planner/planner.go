@@ -137,7 +137,7 @@ func (f *File) savePlans(plans []Plan) error {
 }
 
 //Creates the initial plan
-func (f *File) initialize(reference time.Time) error {
+func (f *File) initialize(reference time.Time, serviceName string) error {
 
 	var names []int
 
@@ -178,8 +178,7 @@ func (f *File) initialize(reference time.Time) error {
 
 	f.savePlans(plans)
 
-	message := "Initializing new plan"
-	fmt.Println(message)
+	fmt.Println("Initializing new plan for " + serviceName)
 
 	return nil
 }
@@ -191,9 +190,13 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 		return err
 	}
 
+	splitFolder := strings.Split(f.Directory, string(os.PathSeparator))
+
+	serviceName := splitFolder[len(splitFolder)-2]
+
 	_, errstat := os.Stat(f.Plandirectory + "plan.json")
 	if os.IsNotExist(errstat) {
-		err := f.initialize(time.Now().AddDate(0, 0, -1).UTC())
+		err := f.initialize(time.Now().AddDate(0, 0, -1).UTC(), serviceName)
 		if err != nil {
 			return err
 		}
@@ -232,7 +235,7 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 
 				f.savePlans(plans)
 
-				fmt.Println("Data from file " + plan.Filename + " copied")
+				fmt.Println("Data from file " + plan.Filename + " copied for " + serviceName)
 
 			}
 			break
@@ -243,12 +246,11 @@ func (f *File) Gather(acc telegraf.Accumulator) error {
 	if workdone {
 		lastday := plans[len(plans)-1].Day
 		os.Remove(f.Plandirectory + "plan.json")
-		err := f.initialize(lastday)
+		err := f.initialize(lastday, serviceName)
 		if err != nil {
 			return err
 		}
-		message := "All data copied, creating new plan"
-		fmt.Println(message)
+		fmt.Println("All data copied, creating new plan for " + serviceName)
 	}
 
 	return nil
