@@ -65,7 +65,9 @@ func getTags(f *File) map[string]string {
 
 		single := strings.Split(couple, "=")
 
-		tagsmap[single[0]] = single[1]
+		if len(single) > 0 {
+			tagsmap[single[0]] = single[1]
+		}
 
 	}
 
