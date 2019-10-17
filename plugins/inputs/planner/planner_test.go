@@ -74,7 +74,7 @@ func TestGather(t *testing.T) {
 	planneddate = time.Date(testdate.Year(), testdate.Month(), testdate.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 4)
 	assert.Equal(t, planneddate, plans[2].Day)
 
-	//check if accumulator has metrics
+	//check if accumulator has one metric with changed date and tag
 	metrics := acc.Metrics
 
 	resultTime := time.Date(todayDate.Year(), todayDate.Month(), todayDate.Day(), 13, 0, 0, 0, time.UTC)
