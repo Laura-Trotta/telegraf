@@ -1,6 +1,6 @@
 # Archiver Plugin
 
-This plugin saves metrics to files dividing them by metric name, tag, year and day.
+This plugin saves metrics to files dividing them by metric name, a specific tag, year and day.
 Given a path, a metric will be stored in:
 	
 given-directory/metric-name/tag/year/day-of-year
@@ -13,7 +13,7 @@ given-directory/metric-name/tag/year/day-of-year
   ## Directory to write to
   directory = ""
 
-  ## Tag to filter
+  ## Tag 
   tag = ""
 
  

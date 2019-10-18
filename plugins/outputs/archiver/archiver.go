@@ -28,7 +28,9 @@ var sampleConfig = `
   ## Directory to write to
   directory = ""
 
- 
+  ## Tag 
+  tag = ""
+
   ## Data format to output.
   ## Each data format has its own unique set of configuration options, read
   ## more about them here:
