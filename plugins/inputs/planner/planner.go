@@ -39,6 +39,10 @@ directory = ""
 ## Directory where the plan will be saved
 plandirectory = ""
 
+## List of tags to be modified. 
+## Example: tag1=newtag1,tag2=newtag2
+tagslist = ""
+
 ## The dataformat to be read from files
 ## Each data format has its own unique set of configuration options, read
 ## more about them here:
